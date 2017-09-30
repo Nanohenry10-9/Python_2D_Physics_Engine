@@ -9,15 +9,24 @@ win.setBackground('white')
 
 colors = ['red', 'blue', 'green', 'black', 'orange']
 
-radius = 20
+radius = input("Ball radius? ")
+if not radius.isdigit():
+    radius = 20
+else:
+    radius = int(radius)
+doCollision = input("Do collision detection? ")
+if doCollision == "true" or doCollision == "True" or doCollision == '1':
+    doCollision = True
+else:
+    doCollision = False
 
-grav = 0.05 #default = 0.05
+grav = 0.05
 
 LEN = 0
 circles = [None] * LEN
 
 class Ball:
-    def __init__(self, x, y, init_s_x, init_s_y, color):
+    def __init__(self, x, y, init_s_x, init_s_y, color, mass):
         self.sX = init_s_x
         self.sY = init_s_y
         self.x = x
@@ -26,6 +35,13 @@ class Ball:
         self.color = color
         self.hit = False
         self.hitOld = False
+        self.mass = mass
+
+    def inside(self):
+        for i in range(len(circles)):
+            if sqrt(pow(abs(self.x - circles[i].x), 2) + pow(abs(self.y - circles[i].y), 2)) < radius * 2 and sqrt(pow(abs(self.x - circles[i].x), 2) + pow(abs(self.y - circles[i].y), 2)) != 0:
+                return i
+        return -1
 
     def move(self):
         self.x = self.x + self.sX
@@ -33,12 +49,18 @@ class Ball:
 
     def update(self, index, check):
         if check:
-            for i in range(len(circles)):
-                if index != i:
-                    if sqrt(pow(abs(self.x - circles[i].x), 2) + pow(abs(self.y - circles[i].y), 2)) <= radius * 2: # If collision has happened with other ball
-                        self.sX = circles[i].sX
-                        self.sY = circles[i].sY
-                        
+            i = self.inside()
+            if i != -1:
+                while self.inside() != -1:
+                    tempX = (circles[i].x - self.x) / (radius * 1.5)
+                    tempY = (circles[i].y - self.y) / (radius * 1.5)
+                    self.sX = (self.x - circles[i].x) / (radius * 1.5)
+                    self.sY = (self.y - circles[i].y) / (radius * 1.5)
+                    circles[i].sX = tempX
+                    circles[i].sY = tempY
+                    self.move()
+                    circles[i].move()
+
         self.sY = self.sY + grav
         if self.y + radius >= MAXY:
             self.y = MAXY - radius
@@ -58,13 +80,13 @@ class Ball:
         self.c.draw(win)
 
 for i in range(LEN):
-    circles[i] = Ball(randint(0, MAXX), randint(0, MAXY), randint(-10, 10), randint(-10, 10), colors[randint(0, 4)])
+    circles[i] = Ball(randint(0, MAXX), randint(0, MAXY), randint(-10, 10), randint(-10, 10), colors[randint(0, 4)], radius)
 
 u = 0
 
 while True:
     for i in range(len(circles)):
-        circles[i].update(i, True)
+        circles[i].update(i, doCollision)
         circles[i].move()
 
     if u == 0:
@@ -79,7 +101,9 @@ while True:
         if len(circles) > 0:
             del circles[-1]
     elif key == 's':
-        win.getKey()
+        key = win.getKey()
+        if key == 's':
+            break
         
     pt1 = win.checkMouse()
     if pt1 != None:
@@ -88,7 +112,7 @@ while True:
         l.setWidth(3)
         l.setFill('red')
         l.draw(win)
-        newBall = Ball(int(pt1.getX()), int(pt1.getY()), int((pt1.getX() - pt2.getX()) / 20), int((pt1.getY() - pt2.getY()) / 20), colors[randint(0, 4)])
+        newBall = Ball(int(pt1.getX()), int(pt1.getY()), int((pt1.getX() - pt2.getX()) / 20), int((pt1.getY() - pt2.getY()) / 20), colors[randint(0, 4)], radius)
         circles.append(newBall)
         sleep(0.1)
         l.undraw()
